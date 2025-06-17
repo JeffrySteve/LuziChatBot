@@ -2,28 +2,15 @@
 
 import streamlit as st
 from streamlit_chat import message
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import torch
 import random
 
-# -------------------------
-# 1️⃣ Load local DialoGPT model
-# -------------------------
-@st.cache_resource
-def load_model():
-    tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-small")
-    model = AutoModelForCausalLM.from_pretrained("microsoft/DialoGPT-small")
-    return tokenizer, model
-
-tokenizer, model = load_model()
+#
 
 # -------------------------
 # 2️⃣ Your custom rule-based brain
 # -------------------------
 def custom_brain(user_input):
     user_input = user_input.lower()
-    st.image("logo.ico", width=200)
-
     if "price" in user_input:
         return "💰 Our prices range from $10 to $200. Do you want a recommendation?"
     elif "delivery" in user_input or "shipping" in user_input:
@@ -36,8 +23,36 @@ def custom_brain(user_input):
         ])
     elif "refund" in user_input:
         return "🔄 We offer a 30-day money-back guarantee. Just contact support!"
+    elif "support" in user_input or "help" in user_input:
+        return "🛠️ Our support team is available 24/7. How can we assist you?"
+    elif "hours" in user_input or "open" in user_input:
+        return "⏰ We're open Monday to Friday, 9am to 6pm."
+    elif "payment" in user_input or "pay" in user_input:
+        return "💳 We accept Visa, MasterCard, PayPal, and Apple Pay."
+    elif "thank" in user_input:
+        return random.choice([
+            "You're welcome! 😊",
+            "Glad I could help! 👍",
+            "Anytime! Let me know if you have more questions."
+        ])
+    elif "contact" in user_input or "email" in user_input or "phone" in user_input:
+        return "📞 You can contact us at jeffrysteves@gmail.com or call (123) 456-7890."
+    elif "order" in user_input or "purchase" in user_input:
+        return "📝 To place an order, just let me know what you need or visit our website!"
+    elif "cancel" in user_input:
+        return "❌ To cancel your order, please provide your order number or contact support."
+    elif "track" in user_input or "tracking" in user_input:
+        return "🔎 You can track your order using the tracking link sent to your email."
+    elif "recommend" in user_input or "suggest" in user_input:
+        return "🤔 Tell me what you're looking for, and I'll recommend something!"
+    elif "discount" in user_input or "coupon" in user_input or "promo" in user_input:
+        return "🎉 We often have promotions! Check our website or subscribe to our newsletter for the latest deals."
+    elif "job" in user_input or "career" in user_input or "hire" in user_input:
+        return "💼 We're always looking for talent! Visit our Careers page for open positions."
+    elif "feedback" in user_input or "complaint" in user_input:
+        return "📝 We value your feedback. Please share your thoughts, and we'll do our best to improve."
     else:
-        return None  # If no match, fallback to DialoGPT
+        return "🤖 Sorry, I didn't understand that. Can you rephrase your question?"
 
 # -------------------------
 # 3️⃣ Streamlit UI setup
@@ -49,8 +64,6 @@ if "generated" not in st.session_state:
     st.session_state.generated = []
 if "past" not in st.session_state:
     st.session_state.past = []
-if "chat_history_ids" not in st.session_state:
-    st.session_state.chat_history_ids = None
 
 # -------------------------
 # 4️⃣ User input
@@ -58,31 +71,10 @@ if "chat_history_ids" not in st.session_state:
 user_input = st.text_input("You:", key="input")
 
 if user_input:
-    # 1st: Try your custom brain
     response = custom_brain(user_input)
-
-    if response is None:
-        # 2nd: Fallback to DialoGPT
-        new_input_ids = tokenizer.encode(user_input + tokenizer.eos_token, return_tensors="pt")
-
-        bot_input_ids = torch.cat(
-            [st.session_state.chat_history_ids, new_input_ids], dim=-1
-        ) if st.session_state.chat_history_ids is not None else new_input_ids
-
-        st.session_state.chat_history_ids = model.generate(
-            bot_input_ids,
-            max_length=1000,
-            pad_token_id=tokenizer.eos_token_id,
-        )
-
-        response = tokenizer.decode(
-            st.session_state.chat_history_ids[:, bot_input_ids.shape[-1]:][0],
-            skip_special_tokens=True,
-        )
-
-    # Store conversation
     st.session_state.past.append(user_input)
     st.session_state.generated.append(response)
+
 
 # -------------------------
 # 5️⃣ Show chat history
